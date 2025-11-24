@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+# Virtualenv
+venv/
+.venv/
+env/
+.env/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs/Editor
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/
+
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.swp
