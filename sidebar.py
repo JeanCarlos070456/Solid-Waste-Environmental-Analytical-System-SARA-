@@ -25,7 +25,17 @@ def sidebar_filters(category_labels: dict) -> list:
     selected_pins = [option_map[o] for o in selected]
 
     st.sidebar.markdown("---")
+    st.sidebar.subheader("Legenda")
+
+    # Legenda dos pins
+    for pin, label in category_labels.items():
+        col_icon, col_text = st.sidebar.columns([1, 4])
+        with col_icon:
+            st.image(f"img/pin_{pin}.png", use_container_width=True)
+        with col_text:
+            st.markdown(f"**Pin {pin}**<br>{label}", unsafe_allow_html=True)
+
+    st.sidebar.markdown("---")
     st.sidebar.caption("SARA - Sistema Analítico de Resíduos e Ambiente")
 
     return selected_pins
-

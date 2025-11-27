@@ -51,7 +51,7 @@ def set_background(image_path: str):
 st.set_page_config(page_title="SARA - Mapa", layout="wide")
 set_background("fundos/fundo_mapa.png")
 
-st.title("SARA - Sistema Analítico de Resíduos e Ambiente")
+st.title("SARA - Sistema Analítico de Resíduos e Ambiente (Sol Nascente)")
 
 # --- Sidebar: retorna lista de pins selecionados ---
 selected_pins = sidebar_filters(CATEGORY_LABELS)
