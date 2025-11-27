@@ -11,16 +11,16 @@ def get_connection():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 
-def insert_ponto(pin: int, nome: str, pnrs: str, lat: float, long: float) -> None:
+def insert_ponto(pin: int, nome: str, pnrs: str, lat: float, long: float, data_registro: str) -> None:
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        INSERT INTO pontos (pin, nome, pnrs, lat, long)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO pontos (pin, nome, pnrs, lat, long, data_registro)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (pin, nome, pnrs, lat, long),
+        (pin, nome, pnrs, lat, long, data_registro),
     )
 
     conn.commit()
@@ -33,14 +33,14 @@ def fetch_pontos(pins: Optional[List[int]] = None) -> pd.DataFrame:
     if pins:
         placeholders = ",".join("?" * len(pins))
         query = f"""
-            SELECT pin, nome, pnrs, lat, long
+            SELECT pin, nome, pnrs, lat, long, data_registro
             FROM pontos
             WHERE pin IN ({placeholders})
         """
         df = pd.read_sql_query(query, conn, params=pins)
     else:
         query = """
-            SELECT pin, nome, pnrs, lat, long
+            SELECT pin, nome, pnrs, lat, long, data_registro
             FROM pontos
         """
         df = pd.read_sql_query(query, conn)

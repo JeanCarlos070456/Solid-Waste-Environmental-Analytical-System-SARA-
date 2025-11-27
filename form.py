@@ -1,9 +1,11 @@
 import json
 import time
+from datetime import datetime
+import base64
+import os
 
 import streamlit as st
-from streamlit_js_eval import get_geolocation  # <- MESMO PACOTE DOS MAPAS DA SES
-
+from streamlit_js_eval import get_geolocation
 from db import insert_ponto
 
 CATEGORY_LABELS = {
@@ -15,6 +17,36 @@ CATEGORY_LABELS = {
     6: "Descarte de Entulhos de Obras",
 }
 
+# ===== Helpers de fundo =====
+
+def set_background(image_path: str):
+    """Define uma imagem de fundo a partir de um arquivo local."""
+    if not os.path.exists(image_path):
+        st.warning(f"Imagem de fundo não encontrada: {image_path}")
+        return
+
+    with open(image_path, "rb") as f:
+        data = f.read()
+    encoded = base64.b64encode(data).decode()
+
+    css = f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{encoded}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+    }}
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.88);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+
 # ===== Helpers de tempo/parse (baseados no código da SES) =====
 
 AWAIT_TIMEOUT = 8  # segundos máximos esperando resposta do navegador
@@ -24,17 +56,7 @@ def _now() -> float:
 
 def _parse_nav_response(data):
     """
-    Mesmo padrão da SES:
-
-    Espera algo tipo:
-      - {"latitude": ..., "longitude": ...}
-      - {"coords": {"latitude": ..., "longitude": ...}}
-      - {"error": "..."} ou {"permission": "denied"}
-
-    Retorna:
-      - (lat, lon) -> sucesso
-      - "denied"   -> usuário negou / permissão recusada
-      - None       -> ainda sem dados
+    Mesmo padrão da SES.
     """
     if not isinstance(data, dict):
         return None
@@ -60,15 +82,17 @@ def _parse_nav_response(data):
 # ===== Config Streamlit =====
 
 st.set_page_config(page_title="SARA - Novo Ponto", layout="centered")
-st.title("Cadastro de Ponto de Descarte Irregular")
+set_background("fundos/fundo_form.png")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.image("logo/residencia_cts.png", use_container_width=True)
 
+st.title("Cadastro de Ponto de Descarte Irregular (Sol Nascente)-SARA")
+st.write("Residência CTS- Ciência, Técnologia e Sociedade")
 # Estado inicial
 if "coords" not in st.session_state:
     st.session_state["coords"] = None
 
-# 'loc_phase' controla o fluxo de geolocalização:
-#   None      -> parado
-#   'await'   -> aguardando resposta do navegador
 if "loc_phase" not in st.session_state:
     st.session_state["loc_phase"] = None
 
@@ -86,7 +110,6 @@ categoria_escolhida = st.selectbox(
     options=categoria_opcoes
 )
 
-# Extrai o número do pin (ex.: "Pin 1 - ..." -> 1)
 pin_num = int(categoria_escolhida.split()[1])
 
 nome = st.text_input("Nome do ponto (descrição curta)")
@@ -97,7 +120,6 @@ st.markdown("### Localização")
 # ===== Botão que DISPARA o pedido de localização =====
 
 if st.button("Solicitar localização do navegador"):
-    # Marca que estamos aguardando o navegador responder
     st.session_state["loc_phase"] = "await"
     st.session_state["loc_await_t0"] = _now()
     st.session_state["coords"] = None
@@ -113,34 +135,26 @@ if st.session_state["loc_phase"] == "await":
 
     try:
         data = get_geolocation()
-        # Ex.: {'coords': {'latitude': -15.8, 'longitude': -47.9}, 'timestamp': ..., 'permission': 'granted'}
-        # print para debug se quiser:
-        # st.write("DEBUG geolocation:", data)
     except Exception as e:
         data = {"error": str(e)}
 
     parsed = _parse_nav_response(data)
 
     if isinstance(parsed, tuple):
-        # Sucesso: temos (lat, lon)
         lat, lon = parsed
         st.session_state["coords"] = {"lat": lat, "long": lon}
         st.session_state["loc_phase"] = None
         st.session_state["loc_await_t0"] = None
         st.success(f"Localização obtida: lat={lat:.6f}, long={lon:.6f}")
     elif parsed == "denied":
-        # Usuário negou permissão
         st.session_state["coords"] = None
         st.session_state["loc_phase"] = None
         st.session_state["loc_await_t0"] = None
         st.error("Permissão de localização negada no navegador. Habilite o acesso para continuar.")
     else:
-        # Ainda não chegou nada útil do navegador
         if elapsed < AWAIT_TIMEOUT:
-            # Ainda dentro do timeout: força rerun pra tentar de novo
             st.rerun()
         else:
-            # Passou do timeout e não conseguiu
             st.session_state["coords"] = None
             st.session_state["loc_phase"] = None
             st.session_state["loc_await_t0"] = None
@@ -171,12 +185,15 @@ if finalizar:
         st.error("Capture a localização antes de finalizar.")
     else:
         try:
+            data_registro = datetime.now().strftime("%Y-%m-%d")
+
             insert_ponto(
                 pin=pin_num,
                 nome=nome,
                 pnrs=pnrs,
                 lat=float(coords["lat"]),
                 long=float(coords["long"]),
+                data_registro=data_registro,
             )
             st.success("Ponto cadastrado com sucesso!")
         except Exception as e:

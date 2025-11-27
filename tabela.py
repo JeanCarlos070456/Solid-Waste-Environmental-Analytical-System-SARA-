@@ -10,12 +10,13 @@ cursor = conexao.cursor()
 cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS pontos (
-        id   INTEGER PRIMARY KEY AUTOINCREMENT,
-        pin  INTEGER NOT NULL,
-        nome TEXT    NOT NULL,
-        pnrs TEXT,
-        lat  REAL    NOT NULL,
-        long REAL    NOT NULL
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        pin           INTEGER NOT NULL,
+        nome          TEXT    NOT NULL,
+        pnrs          TEXT,
+        lat           REAL    NOT NULL,
+        long          REAL    NOT NULL,
+        data_registro TEXT    NOT NULL
     );
     """
 )

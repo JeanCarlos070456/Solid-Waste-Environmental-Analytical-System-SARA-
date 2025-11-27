@@ -1,6 +1,10 @@
 import streamlit as st
 
 def sidebar_filters(category_labels: dict) -> list:
+    # Logo da Residência no topo da sidebar
+    st.sidebar.image("logo/residencia_cts.png", use_container_width=True)
+    st.sidebar.markdown("---")
+
     st.sidebar.header("Filtros")
     st.sidebar.write("Selecione as categorias de pontos que deseja visualizar:")
 
@@ -24,3 +28,4 @@ def sidebar_filters(category_labels: dict) -> list:
     st.sidebar.caption("SARA - Sistema Analítico de Resíduos e Ambiente")
 
     return selected_pins
+

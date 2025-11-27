@@ -1,3 +1,6 @@
+import base64
+import os
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -16,7 +19,38 @@ CATEGORY_LABELS = {
     6: "Descarte de Entulhos de Obras",
 }
 
+
+def set_background(image_path: str):
+    """Define uma imagem de fundo a partir de um arquivo local."""
+    if not os.path.exists(image_path):
+        st.warning(f"Imagem de fundo não encontrada: {image_path}")
+        return
+
+    with open(image_path, "rb") as f:
+        data = f.read()
+    encoded = base64.b64encode(data).decode()
+
+    css = f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{encoded}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+    }}
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.85);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+
 st.set_page_config(page_title="SARA - Mapa", layout="wide")
+set_background("fundos/fundo_mapa.png")
+
 st.title("SARA - Sistema Analítico de Resíduos e Ambiente")
 
 # --- Sidebar: retorna lista de pins selecionados ---
@@ -42,12 +76,13 @@ for _, row in df.iterrows():
     popup_html = f"""
     <b>{CATEGORY_LABELS.get(pin_num, f"Pin {pin_num}")}</b><br>
     Nome: {row['nome']}<br>
-    PNRS: {row['pnrs'] if row['pnrs'] else '-'}
+    PNRS: {row['pnrs'] if row['pnrs'] else '-'}<br>
+    Data de registro: {row['data_registro']}
     """
 
     icon = CustomIcon(
         icon_image=icon_path,
-        icon_size=(32, 32),
+        icon_size=(42, 42),
         icon_anchor=(16, 32)
     )
 
@@ -58,4 +93,4 @@ for _, row in df.iterrows():
     ).add_to(m)
 
 # --- Renderiza o mapa no Streamlit ---
-st_folium(m, width="100%", height=600)
+st_folium(m, width="100%", height=750)
