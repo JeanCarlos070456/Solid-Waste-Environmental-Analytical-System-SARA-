@@ -9,6 +9,7 @@ from streamlit_folium import st_folium
 
 from sidebar import sidebar_filters
 from db import fetch_pontos
+from message import show_intro_message  # <-- NOVO IMPORT
 
 CATEGORY_LABELS = {
     1: "Acúmulo de Pneu",
@@ -48,16 +49,30 @@ def set_background(image_path: str):
     st.markdown(css, unsafe_allow_html=True)
 
 
+@st.cache_data(show_spinner=False)
+def load_pontos_cached(selected_pins_tuple):
+    """
+    Carrega pontos do banco com cache por combinação de pins selecionados.
+
+    selected_pins_tuple: tuple(...) com os pins (1..6)
+    """
+    # converte de volta pra lista porque o fetch_pontos espera lista
+    return fetch_pontos(list(selected_pins_tuple))
+
+
 st.set_page_config(page_title="SARA - Mapa", layout="wide")
 set_background("fundos/fundo_mapa.png")
+
+# --- Mensagem de apresentação (slides) ---
+show_intro_message()
 
 st.title("SARA - Sistema Analítico de Resíduos e Ambiente (Sol Nascente)")
 
 # --- Sidebar: retorna lista de pins selecionados ---
 selected_pins = sidebar_filters(CATEGORY_LABELS)
 
-# --- Carrega dados do banco ---
-df = fetch_pontos(selected_pins)
+# --- Carrega dados do banco (agora cacheado por filtro) ---
+df = load_pontos_cached(tuple(sorted(selected_pins)))  # sort pra ordem não quebrar o cache
 
 if df.empty:
     st.warning("Nenhum ponto cadastrado ainda ou filtros muito restritivos.")
@@ -73,23 +88,42 @@ for _, row in df.iterrows():
     pin_num = int(row["pin"])
     icon_path = f"img/pin_{pin_num}.png"
 
+    categoria = CATEGORY_LABELS.get(pin_num, f"Pin {pin_num}")
+    pnrs_val = row["pnrs"] if row["pnrs"] else "-"
+
     popup_html = f"""
-    <b>{CATEGORY_LABELS.get(pin_num, f"Pin {pin_num}")}</b><br>
-    Nome: {row['nome']}<br>
-    PNRS: {row['pnrs'] if row['pnrs'] else '-'}<br>
-    Data de registro: {row['data_registro']}
+    <div style="font-size: 13px; font-family: Arial, sans-serif;">
+      <table style="border-collapse: collapse;">
+        <tr>
+          <td style="font-weight:600; padding-right:6px;">Categoria:</td>
+          <td>{categoria}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600; padding-right:6px;">Nome do ponto:</td>
+          <td>{row['nome']}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600; padding-right:6px;">Classificação PNRS:</td>
+          <td>{pnrs_val}</td>
+        </tr>
+        <tr>
+          <td style="font-weight:600; padding-right:6px;">Data registro:</td>
+          <td>{row['data_registro']}</td>
+        </tr>
+      </table>
+    </div>
     """
 
     icon = CustomIcon(
         icon_image=icon_path,
         icon_size=(42, 42),
-        icon_anchor=(16, 32)
+        icon_anchor=(16, 32),
     )
 
     folium.Marker(
         location=[row["lat"], row["long"]],
         icon=icon,
-        popup=popup_html
+        popup=popup_html,
     ).add_to(m)
 
 # --- Renderiza o mapa no Streamlit ---
