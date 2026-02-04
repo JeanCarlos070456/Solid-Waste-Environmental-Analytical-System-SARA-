@@ -1,0 +1,5 @@
+# venv
+.venv
+
+# cache do python
+__pycache__

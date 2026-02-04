@@ -127,4 +127,5 @@ for _, row in df.iterrows():
     ).add_to(m)
 
 # --- Renderiza o mapa no Streamlit ---
-st_folium(m, width="100%", height=750)
+st_folium(m, width=1200, height=550,
+          returned_objects=[])
